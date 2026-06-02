@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { LongTrip } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
+import { UploadIcon } from './icons/UploadIcon';
+import { DownloadIcon } from './icons/DownloadIcon';
 
 interface LongTripModalProps {
   trip: LongTrip | null;
@@ -63,21 +65,24 @@ interface LongTripCalculatorProps {
   onAddLongTrip: (trip: LongTrip) => void;
   onUpdateLongTrip: (trip: LongTrip) => void;
   onDeleteLongTrip: (id: string) => void;
+  onImportLongTrips: (trips: LongTrip[]) => void;
 }
 
 const LongTripCalculator: React.FC<LongTripCalculatorProps> = ({ 
     longTrips, allLongTrips, isAdmin, pricePerKm, setPricePerKm, searchTerm, setSearchTerm, 
     kmSearchTerm, setKmSearchTerm,
-    onAddLongTrip, onUpdateLongTrip, onDeleteLongTrip 
+    onAddLongTrip, onUpdateLongTrip, onDeleteLongTrip, onImportLongTrips
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTrip, setEditingTrip] = useState<LongTrip | null>(null);
 
-    const [localPriceInput, setLocalPriceInput] = useState(pricePerKm.toString().replace('.', ','));
+    const [localPriceInput, setLocalPriceInput] = useState((pricePerKm ?? 5).toString().replace('.', ','));
     const [saveSuccess, setSaveSuccess] = useState(false);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        setLocalPriceInput(pricePerKm.toString().replace('.', ','));
+        setLocalPriceInput((pricePerKm ?? 5).toString().replace('.', ','));
     }, [pricePerKm]);
 
     const handlePriceSave = () => {
@@ -87,6 +92,69 @@ const LongTripCalculator: React.FC<LongTripCalculatorProps> = ({
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 2000);
         }
+    };
+
+    const handleExport = () => {
+        if (allLongTrips.length === 0) return;
+
+        const header = "Cidade,KM\n";
+        const csvRows = allLongTrips.map(trip => {
+            const kilometers = typeof trip?.kilometers === 'number' ? trip.kilometers : parseFloat(trip?.kilometers as any) || 0;
+            return `"${trip?.city || ''}",${kilometers.toFixed(1).replace('.', ',')}`;
+        }).join('\n');
+        
+        const blob = new Blob(["\uFEFF" + header + csvRows], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `viagens_longas_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!isAdmin) return;
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result as string;
+            if (!text) return;
+
+            try {
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                const newTrips: LongTrip[] = lines.slice(1)
+                    .map((line, index) => {
+                        const parts = line.split(',');
+                        if (parts.length < 2) return null;
+                        
+                        const city = parts[0]?.replace(/^"|"$/g, '').trim().toUpperCase();
+                        const kmStr = parts[1]?.replace(/^"|"$/g, '').trim().replace(',', '.');
+                        const kilometers = parseFloat(kmStr);
+
+                        if (!city || isNaN(kilometers)) return null;
+                        
+                        return {
+                            id: `imp-lt-${Date.now()}-${index}`,
+                            city,
+                            kilometers,
+                        };
+                    }).filter((t): t is LongTrip => t !== null);
+
+                if (newTrips.length > 0) {
+                    onImportLongTrips(newTrips);
+                    alert(`${newTrips.length} destinos importados com sucesso.`);
+                } else {
+                    alert('Nenhum dado válido encontrado no arquivo CSV.');
+                }
+            } catch (error) {
+                alert('Erro ao processar o arquivo CSV.');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; 
     };
 
     return (
@@ -165,9 +233,18 @@ const LongTripCalculator: React.FC<LongTripCalculatorProps> = ({
                         </div>
                         <div className="xl:col-span-3">
                             {isAdmin && (
-                                <button onClick={() => { setEditingTrip(null); setIsModalOpen(true); }} className="w-full bg-yellow-400 text-gray-900 font-black py-5 rounded-2xl text-sm uppercase hover:bg-yellow-500 shadow-lg flex items-center justify-center transition-transform active:scale-95">
-                                    <PlusIcon className="w-5 h-5 mr-2" /> Novo Destino
-                                </button>
+                                <div className="flex items-center gap-2 justify-end w-full h-full">
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".csv" />
+                                    <button onClick={() => fileInputRef.current?.click()} className="p-3.5 text-blue-500 hover:bg-blue-50 rounded-2xl transition-colors border border-transparent hover:border-blue-100 flex-shrink-0" title="Importar CSV">
+                                        <UploadIcon className="w-6 h-6" />
+                                    </button>
+                                    <button onClick={handleExport} className="p-3.5 text-gray-500 hover:bg-gray-50 rounded-2xl transition-colors border border-transparent hover:border-gray-100 flex-shrink-0" title="Exportar CSV">
+                                        <DownloadIcon className="w-6 h-6" />
+                                    </button>
+                                    <button onClick={() => { setEditingTrip(null); setIsModalOpen(true); }} className="flex-1 bg-yellow-400 text-gray-900 font-black py-5 px-4 rounded-2xl text-sm uppercase hover:bg-yellow-500 shadow-lg flex items-center justify-center transition-transform active:scale-95 whitespace-nowrap">
+                                        <PlusIcon className="w-5 h-5 mr-2" /> Novo
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -179,7 +256,7 @@ const LongTripCalculator: React.FC<LongTripCalculatorProps> = ({
                             <tr>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cidade</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">KM Oficial</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Tabelado (KM R$ {pricePerKm.toFixed(2).replace('.', ',')})</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Tabelado (KM R$ {(typeof pricePerKm === 'number' ? pricePerKm : parseFloat(pricePerKm as any) || 0).toFixed(2).replace('.', ',')})</th>
                                 {isAdmin && <th className="px-8 py-6 text-right">Ações</th>}
                             </tr>
                         </thead>
@@ -195,13 +272,13 @@ const LongTripCalculator: React.FC<LongTripCalculatorProps> = ({
                                     <td className="px-6 py-2 md:px-8 md:py-6 block md:table-cell">
                                         <div className="flex justify-between items-center md:block">
                                             <span className="font-black text-[9px] text-gray-300 md:hidden uppercase tracking-widest">Distância</span>
-                                            <span className="text-base text-gray-600 font-bold">{trip.kilometers.toFixed(1).replace('.', ',')} KM</span>
+                                            <span className="text-base text-gray-600 font-bold">{(typeof trip.kilometers === 'number' ? trip.kilometers : parseFloat(trip.kilometers as any) || 0).toFixed(1).replace('.', ',')} KM</span>
                                         </div>
                                     </td>
                                     <td className="p-6 md:px-8 md:py-6 block md:table-cell">
                                         <div className="flex justify-between items-center md:block">
                                             <span className="font-black text-[9px] text-gray-300 md:hidden uppercase tracking-widest">Preço</span>
-                                            <span className="text-2xl text-gray-900 font-black">R$ {(trip.kilometers * pricePerKm).toFixed(2).replace('.', ',')}</span>
+                                            <span className="text-2xl text-gray-900 font-black">R$ {((typeof trip.kilometers === 'number' ? trip.kilometers : parseFloat(trip.kilometers as any) || 0) * (typeof pricePerKm === 'number' ? pricePerKm : parseFloat(pricePerKm as any) || 0)).toFixed(2).replace('.', ',')}</span>
                                         </div>
                                     </td>
                                     {isAdmin && (

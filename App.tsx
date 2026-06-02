@@ -116,9 +116,31 @@ const App: React.FC = () => {
   };
   
   const handleImportFares = (newFares: Fare[]) => {
-    const updated = [...fares, ...newFares];
+    const replace = window.confirm('Deseja SUBSTITUIR toda a tabela existente de Bairro/Hotel pelos dados do arquivo importado?\n\nClique em OK para substituir toda a tabela anterior.\nClique em Cancelar para mesclar os novos dados com os existentes sem duplicar.');
+    let updated: Fare[];
+    if (replace) {
+      updated = newFares;
+    } else {
+      const existingDestinations = new Set(fares.map(f => f.destination.toLowerCase().trim()));
+      const filteredNew = newFares.filter(f => !existingDestinations.has(f.destination.toLowerCase().trim()));
+      updated = [...fares, ...filteredNew];
+    }
     setFares(updated);
     fareService.storeFares(updated);
+  };
+
+  const handleImportLongTrips = (newTrips: LongTrip[]) => {
+    const replace = window.confirm('Deseja SUBSTITUIR toda a tabela existente de Distâncias Oficiais (Viagens Longas) pelos dados do arquivo importado?\n\nClique em OK para substituir toda a tabela anterior.\nClique em Cancelar para mesclar os novos dados com os existentes sem duplicar.');
+    let updated: LongTrip[];
+    if (replace) {
+      updated = newTrips;
+    } else {
+      const existingCities = new Set(longTrips.map(t => t.city.toLowerCase().trim()));
+      const filteredNew = newTrips.filter(t => !existingCities.has(t.city.toLowerCase().trim()));
+      updated = [...longTrips, ...filteredNew];
+    }
+    setLongTrips(updated);
+    fareService.storeLongTrips(updated);
   };
 
   const handleAddLongTrip = (newTrip: LongTrip) => {
@@ -185,6 +207,7 @@ const App: React.FC = () => {
             onUpdateLongTrip={handleUpdateLongTrip}
             onDeleteLongTrip={handleDeleteLongTrip}
             allLongTrips={longTrips}
+            onImportLongTrips={handleImportLongTrips}
           />
         );
       case 'users':

@@ -1,7 +1,8 @@
-
 import type { User } from '../types';
+import { db } from './firebase';
+import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 
-// NOTE: This is a simulation. In a real app, never store passwords in plain text or handle auth client-side.
+// NOTE: We store users persistently in Google Cloud Firestore database
 const USERS_KEY = 'taxi_app_users';
 const CURRENT_USER_KEY = 'taxi_app_current_user';
 
@@ -18,35 +19,92 @@ const storeUsers = (users: Record<string, Omit<User, 'email'> & { passwordHash: 
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
-export const register = (email: string, password: string): { success: boolean; message: string; user?: User } => {
-  const users = getStoredUsers();
+// Sync users from Firestore to local storage for high availability and offline use
+export const syncUsersFromFirestore = async (): Promise<boolean> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const firestoreUsers: Record<string, Omit<User, 'email'> & { passwordHash: string }> = {};
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.email) {
+        firestoreUsers[data.email.toLowerCase().trim()] = {
+          role: data.role || 'user',
+          createdAt: data.createdAt || new Date().toISOString(),
+          passwordHash: data.password || data.passwordHash || '',
+        };
+      }
+    });
 
-  if (email.toLowerCase() === 'admin') {
+    const localUsers = getStoredUsers();
+    const merged = { ...localUsers, ...firestoreUsers };
+    storeUsers(merged);
+    return true;
+  } catch (error) {
+    console.error("Erro ao sincronizar usuários do Firestore:", error);
+    return false;
+  }
+};
+
+// Start background synchronization on library load
+syncUsersFromFirestore();
+
+export const register = async (
+  email: string, 
+  password: string,
+  role: 'user' | 'admin' = 'user'
+): Promise<{ success: boolean; message: string; user?: User }> => {
+  const emailLower = email.toLowerCase().trim();
+
+  if (emailLower === 'admin') {
       return { success: false, message: 'Este nome de usuário é reservado.' };
   }
   
-  if (users[email]) {
+  // Refresh cache before validating
+  await syncUsersFromFirestore();
+  
+  const users = getStoredUsers();
+  if (users[emailLower]) {
     return { success: false, message: 'Este e-mail já está cadastrado.' };
   }
 
   const newUser: User = {
-    email,
-    role: 'user',
+    email: emailLower,
+    role: role,
     createdAt: new Date().toISOString(),
   };
 
-  users[email] = {
-    ...newUser,
-    passwordHash: password, // In a real app, hash the password
+  const dbUserData = {
+    email: emailLower,
+    role: role,
+    createdAt: newUser.createdAt,
+    password: password,
   };
 
-  storeUsers(users);
-  return { success: true, message: 'Cadastro realizado com sucesso!', user: newUser };
+  try {
+    // 1. Persist to Firestore cloud database
+    await setDoc(doc(db, 'users', emailLower), dbUserData);
+
+    // 2. Persist to local storage cache
+    users[emailLower] = {
+      role: newUser.role,
+      createdAt: newUser.createdAt,
+      passwordHash: password, // Store password plain text in sync with mock logic
+    };
+
+    storeUsers(users);
+    return { success: true, message: 'Cadastro realizado com sucesso!', user: newUser };
+  } catch (error) {
+    console.error("Erro ao registrar no Firestore:", error);
+    return { success: false, message: 'Erro ao salvar no banco de dados do Firestore.' };
+  }
 };
 
 export const login = (email: string, password: string): { success: boolean; message: string; user?: User } => {
-  // Hardcoded admin login
-  if (email.toLowerCase() === 'admin' && password === 'Admin') {
+  const emailLower = email.toLowerCase().trim();
+
+  // Hardcoded master admin login for bootstrapping
+  if (emailLower === 'admin' && password === 'Admin') {
     const adminUser: User = {
       email: 'Admin',
       role: 'admin',
@@ -57,12 +115,11 @@ export const login = (email: string, password: string): { success: boolean; mess
   }
 
   const users = getStoredUsers();
-  const storedUser = users[email];
+  const storedUser = users[emailLower];
 
-  if (storedUser && storedUser.passwordHash === password) { // In real app, compare hashes
+  if (storedUser && storedUser.passwordHash === password) {
     const user: User = {
-        // Fix: The 'storedUser' object does not have an 'email' property. The email is the key, which is available in the 'email' function parameter.
-        email: email,
+        email: emailLower,
         role: storedUser.role,
         createdAt: storedUser.createdAt
     };
@@ -70,7 +127,7 @@ export const login = (email: string, password: string): { success: boolean; mess
     return { success: true, message: 'Login bem-sucedido!', user };
   }
 
-  return { success: false, message: 'E-mail ou senha inválidos.' };
+  return { success: false, message: 'Acesso negado. Usuário ou senha incorretos ou não cadastrados.' };
 };
 
 export const logout = () => {
@@ -88,7 +145,6 @@ export const getCurrentUser = (): User | null => {
 
 export const getAllUsers = (): User[] => {
     const users = getStoredUsers();
-    // Fix: The user object from Object.values() does not have an 'email' property. Use Object.entries() to get both the email (key) and the user data.
     return Object.entries(users).map(([email, u]) => ({
         email: email,
         role: u.role,
@@ -96,12 +152,28 @@ export const getAllUsers = (): User[] => {
     }));
 };
 
-export const deleteUser = (email: string): boolean => {
+export const deleteUser = async (email: string): Promise<boolean> => {
+    const emailLower = email.toLowerCase().trim();
     const users = getStoredUsers();
-    if (users[email]) {
-        delete users[email];
-        storeUsers(users);
-        return true;
+    
+    try {
+      // 1. Delete from Firestore cloud database
+      await deleteDoc(doc(db, 'users', emailLower));
+
+      // 2. Clear from local storage cache
+      if (users[emailLower]) {
+          delete users[emailLower];
+          storeUsers(users);
+      }
+      return true;
+    } catch (error) {
+      console.error("Erro ao deletar do Firestore:", error);
+      // Local fallback deletion if database is unreachable
+      if (users[emailLower]) {
+          delete users[emailLower];
+          storeUsers(users);
+          return true;
+      }
+      return false;
     }
-    return false;
 };

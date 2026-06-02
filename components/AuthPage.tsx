@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { User } from '../types';
 import * as authService from '../services/authService';
@@ -8,10 +7,8 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
-  const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -20,28 +17,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     setError(null);
     setSuccess(null);
 
-    if (isLoginView) {
-      const result = authService.login(email, password);
-      if (result.success && result.user) {
-        onLoginSuccess(result.user);
-      } else {
-        setError(result.message);
-      }
+    const result = authService.login(email, password);
+    if (result.success && result.user) {
+      onLoginSuccess(result.user);
     } else {
-      if (password !== confirmPassword) {
-        setError('As senhas não coincidem.');
-        return;
-      }
-      const result = authService.register(email, password);
-      if (result.success) {
-        setSuccess('Cadastro realizado com sucesso! Faça o login para continuar.');
-        setIsLoginView(true);
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-      } else {
-        setError(result.message);
-      }
+      setError(result.message);
     }
   };
 
@@ -56,8 +36,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         <div className="text-center mb-8 sm:mb-12">
           <div className="w-16 h-1.5 bg-blue-600 mx-auto mb-5 rounded-full"></div>
           <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Tabela Táxi <span className="text-blue-600">Coopervip</span></h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 font-bold uppercase tracking-widest">
-            {isLoginView ? 'Acesso Restrito' : 'Criar Nova Conta'}
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 font-bold uppercase tracking-widest text-center">
+            Acesso Restrito
           </p>
         </div>
 
@@ -84,19 +64,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 required
             />
           </div>
-          {!isLoginView && (
-            <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Confirme sua Senha</label>
-                <input
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-5 py-4 text-base bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-2xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all font-medium shadow-sm"
-                required
-                />
-            </div>
-          )}
 
           {error && <p className="text-red-500 text-[10px] text-center font-black uppercase tracking-widest bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>}
           {success && <p className="text-green-500 text-[10px] text-center font-black uppercase tracking-widest bg-green-50 border border-green-100 p-3 rounded-xl">{success}</p>}
@@ -105,21 +72,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             type="submit"
             className="w-full bg-blue-600 text-white font-black py-5 px-8 rounded-2xl hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-xl shadow-blue-500/20 text-base uppercase tracking-widest mt-2"
           >
-            {isLoginView ? 'Entrar no Sistema' : 'Finalizar Cadastro'}
+            Entrar no Sistema
           </button>
         </form>
 
         <div className="text-center mt-10 sm:mt-12 bg-gray-50/50 dark:bg-gray-900/50 -mx-8 sm:-mx-12 -mb-8 sm:-mb-12 p-6 border-t border-gray-100 dark:border-gray-700 rounded-b-[2.5rem]">
-          <button
-            onClick={() => {
-                setIsLoginView(!isLoginView);
-                setError(null);
-                setSuccess(null);
-            }}
-            className="text-[11px] text-blue-600 hover:text-blue-700 font-black uppercase tracking-widest transition-colors"
-          >
-            {isLoginView ? 'Não tem uma conta? Clique aqui' : 'Já é cadastrado? Faça Login'}
-          </button>
+          <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">
+            Para obter acesso, solicite o cadastro ao Administrador.
+          </p>
         </div>
       </div>
     </div>

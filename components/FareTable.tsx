@@ -176,7 +176,9 @@ const FareTable: React.FC<FareTableProps> = ({
 
         const header = "Destino,Regiao,ValorTaximetro,ValorBalcao\n";
         const csvRows = fares.map(fare => {
-            return `"${fare.destination}","${fare.region}",${fare.meterValue.toFixed(2)},${fare.counterValue.toFixed(2)}`;
+            const meterValue = typeof fare?.meterValue === 'number' ? fare.meterValue : parseFloat(fare?.meterValue) || 0;
+            const counterValue = typeof fare?.counterValue === 'number' ? fare.counterValue : parseFloat(fare?.counterValue) || 0;
+            return `"${fare?.destination || ''}","${fare?.region || ''}",${meterValue.toFixed(2)},${counterValue.toFixed(2)}`;
         }).join('\n');
         
         const blob = new Blob(["\uFEFF" + header + csvRows], { type: 'text/csv;charset=utf-8;' });
@@ -283,14 +285,14 @@ const FareTable: React.FC<FareTableProps> = ({
                         <td className="px-6 py-2 md:px-8 md:py-6 block md:table-cell">
                              <div className="flex justify-between items-center md:block">
                                 <span className="font-bold text-[9px] text-gray-300 md:hidden uppercase tracking-widest block">Taxímetro</span>
-                                <span className="text-sm text-gray-500 font-bold">R$ {fare.meterValue.toFixed(2).replace('.', ',')}</span>
+                                <span className="text-sm text-gray-500 font-bold">R$ {(typeof fare.meterValue === 'number' ? fare.meterValue : parseFloat(fare.meterValue) || 0).toFixed(2).replace('.', ',')}</span>
                             </div>
                         </td>
                         <td className="p-6 md:px-8 md:py-6 block md:table-cell md:bg-transparent">
                             <div className="flex justify-between items-center md:block">
                                 <span className="font-bold text-[9px] text-gray-300 md:hidden uppercase tracking-widest block">Balcão</span>
                                 <div className="flex flex-col items-end md:items-start">
-                                  <span className="text-xl text-gray-900 font-black">R$ {fare.counterValue.toFixed(2).replace('.', ',')}</span>
+                                  <span className="text-xl text-gray-900 font-black">R$ {(typeof fare.counterValue === 'number' ? fare.counterValue : parseFloat(fare.counterValue) || 0).toFixed(2).replace('.', ',')}</span>
                                   <span className="text-[9px] text-green-600 font-black uppercase tracking-tighter">Desconto Aplicado</span>
                                 </div>
                             </div>

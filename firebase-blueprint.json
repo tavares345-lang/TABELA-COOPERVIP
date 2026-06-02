@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered application users created by administrator.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "The user email" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "password": { "type": "string", "description": "User access password" }
+      },
+      "required": ["email", "role", "createdAt", "password"]
+    }
+  },
+  "firestore": {
+    "users/{email}": {
+      "schema": "User",
+      "description": "Authorized users created by admin"
+    }
+  }
+}
