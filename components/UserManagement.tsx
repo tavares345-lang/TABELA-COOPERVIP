@@ -14,6 +14,11 @@ const UserManagement: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
+  // Admin password states
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminSuccess, setAdminSuccess] = useState<string | null>(null);
+
   const loadUsers = async (forceSync = false) => {
     setLoading(true);
     if (forceSync) {
@@ -88,6 +93,35 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleUpdateAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError(null);
+    setAdminSuccess(null);
+
+    const trimmedPassword = adminPassword;
+
+    if (!trimmedPassword || trimmedPassword.length < 4) {
+      setAdminError('A nova senha deve ter no mínimo 4 caracteres.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await authService.updateAdminPassword(trimmedPassword);
+      if (result.success) {
+        setAdminSuccess('Senha do Administrador (Admin) alterada com sucesso!');
+        setAdminPassword('');
+        await loadUsers(true);
+      } else {
+        setAdminError(result.message);
+      }
+    } catch (err) {
+      setAdminError('Erro de conexão ao atualizar a senha do Admin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* CARD DE INCLUSÃO DE NOVO USUÁRIO */}
@@ -153,6 +187,59 @@ const UserManagement: React.FC = () => {
         {formSuccess && (
           <p className="mt-4 text-green-500 text-[10px] font-black uppercase tracking-widest bg-green-50 border border-green-100 p-3 rounded-xl max-w-max">
             {formSuccess}
+          </p>
+        )}
+      </div>
+
+      {/* CARD DE ALTERAÇÃO DE SENHA DO ADMIN */}
+      <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-2.5 h-8 bg-red-600 rounded-full"></div>
+          <h2 className="text-3xl font-black text-gray-800 uppercase tracking-tight">Alterar Senha do Admin</h2>
+        </div>
+
+        <form onSubmit={handleUpdateAdminPassword} className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+          <div className="md:col-span-4">
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Usuário</label>
+            <input
+              type="text"
+              value="Admin"
+              disabled
+              className="w-full px-5 py-4 text-base bg-gray-100 border border-gray-200 rounded-2xl text-gray-400 font-bold focus:outline-none"
+            />
+          </div>
+
+          <div className="md:col-span-6">
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nova Senha de Acesso</label>
+            <input
+              type="password"
+              placeholder="Digite a nova senha do administrador (mínimo 4 caracteres)"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              className="w-full px-5 py-4 text-base bg-gray-50 border border-gray-200 focus:bg-white rounded-2xl text-gray-800 focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium"
+              required
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl uppercase tracking-wider text-xs transition-all active:scale-[0.98] shadow-lg shadow-red-500/10 disabled:opacity-50 h-[56px]"
+            >
+              SALVAR SENHA
+            </button>
+          </div>
+        </form>
+
+        {adminError && (
+          <p className="mt-4 text-red-500 text-[10px] font-black uppercase tracking-widest bg-red-50 border border-red-100 p-3 rounded-xl max-w-max">
+            {adminError}
+          </p>
+        )}
+        {adminSuccess && (
+          <p className="mt-4 text-green-500 text-[10px] font-black uppercase tracking-widest bg-green-50 border border-green-100 p-3 rounded-xl max-w-max">
+            {adminSuccess}
           </p>
         )}
       </div>
