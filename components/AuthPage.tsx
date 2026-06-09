@@ -27,17 +27,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-cover bg-center bg-no-repeat bg-slate-900"
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-cover bg-center bg-no-repeat bg-slate-950"
       style={{ 
-        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/login_bg.png')`,
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.85)), url('/login_bg.png')`,
       }}
     >
-      <div className="w-full max-w-md bg-white/95 backdrop-blur-md dark:bg-gray-800/95 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 border border-white/20">
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="w-16 h-1.5 bg-blue-600 mx-auto mb-5 rounded-full"></div>
-          <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">Tabela Táxi <span className="text-blue-600">Coopervip</span></h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 font-bold uppercase tracking-widest text-center">
-            Acesso Restrito
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-md dark:bg-gray-900/95 rounded-[2.5rem] shadow-2xl p-8 sm:p-12 border border-white/20">
+        <div className="text-center mb-8 sm:mb-10 flex flex-col items-center">
+          <div className="w-48 sm:w-56 mb-4 filter drop-shadow-[0_4px_25px_rgba(202,138,4,0.15)] transition-transform hover:scale-105 duration-300">
+            <img 
+              src="/pvs_logo.png" 
+              alt="PVS Transporte Executivo Logo" 
+              className="w-full h-auto rounded-3xl select-none"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-950 dark:text-white tracking-tight uppercase mt-2">
+            PVS <span className="text-yellow-600">TRANSPORTE</span>
+          </h1>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black mt-1">
+            Painel de Acesso
           </p>
         </div>
 
@@ -49,7 +58,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 placeholder="Ex: Admin ou seu e-mail"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-5 py-4 text-base bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-2xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all font-medium shadow-sm"
+                className="w-full px-5 py-4 text-base bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-yellow-500/20 transition-all font-medium shadow-sm"
                 required
             />
           </div>
@@ -60,7 +69,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-5 py-4 text-base bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-2xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all font-medium shadow-sm"
+                className="w-full px-5 py-4 text-base bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-yellow-500/20 transition-all font-medium shadow-sm"
                 required
             />
           </div>
@@ -70,13 +79,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-black py-5 px-8 rounded-2xl hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-xl shadow-blue-500/20 text-base uppercase tracking-widest mt-2"
+            className="w-full bg-yellow-500 text-gray-950 font-black py-5 px-8 rounded-2xl hover:bg-yellow-600 active:scale-[0.98] transition-all duration-200 shadow-xl shadow-yellow-500/20 text-base uppercase tracking-widest mt-2"
           >
             Entrar no Sistema
           </button>
         </form>
 
-        <div className="text-center mt-10 sm:mt-12 bg-gray-50/50 dark:bg-gray-900/50 -mx-8 sm:-mx-12 -mb-8 sm:-mb-12 p-6 border-t border-gray-100 dark:border-gray-700 rounded-b-[2.5rem]">
+        <div className="text-center mt-10 sm:mt-12 bg-gray-50/50 dark:bg-gray-800/50 -mx-8 sm:-mx-12 -mb-8 sm:-mb-12 p-6 border-t border-gray-100 dark:border-gray-800 rounded-b-[2.5rem]">
           <p className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">
             Para obter acesso, solicite o cadastro ao Administrador.
           </p>
