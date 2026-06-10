@@ -130,14 +130,35 @@ const App: React.FC = () => {
   };
 
   const handleImportLongTrips = (newTrips: LongTrip[]) => {
-    const replace = window.confirm('Deseja SUBSTITUIR toda a tabela existente de Distâncias Oficiais (Viagens Longas) pelos dados do arquivo importado?\n\nClique em OK para substituir toda a tabela anterior.\nClique em Cancelar para mesclar os novos dados com os existentes sem duplicar.');
+    const replace = window.confirm(
+      'Deseja SUBSTITUIR toda a tabela existente de Distâncias Oficiais (Viagens Longas) pelos dados do arquivo importado?\n\n' +
+      '• Clique em OK para APAGAR a tabela antiga e usar apenas os dados do arquivo.\n' +
+      '• Clique em Cancelar para MESCLAR os dados: as cidades existentes serão preservadas (com a quilometragem atualizada caso estejam no arquivo) e novos destinos inéditos serão adicionados sem duplicar.'
+    );
     let updated: LongTrip[];
     if (replace) {
       updated = newTrips;
     } else {
-      const existingCities = new Set(longTrips.map(t => t.city.toLowerCase().trim()));
-      const filteredNew = newTrips.filter(t => !existingCities.has(t.city.toLowerCase().trim()));
-      updated = [...longTrips, ...filteredNew];
+      const updatedMap = new Map<string, LongTrip>();
+      
+      // Adiciona todas as existentes primeiro para preservar os registros
+      longTrips.forEach(t => {
+        const key = t.city.toLowerCase().trim();
+        updatedMap.set(key, { ...t });
+      });
+      
+      // Sincroniza dados importados: atualiza quilometragem se já existir; adiciona se for nova
+      newTrips.forEach(newTrip => {
+        const key = newTrip.city.toLowerCase().trim();
+        if (updatedMap.has(key)) {
+          const existing = updatedMap.get(key)!;
+          existing.kilometers = newTrip.kilometers;
+        } else {
+          updatedMap.set(key, newTrip);
+        }
+      });
+      
+      updated = Array.from(updatedMap.values());
     }
     setLongTrips(updated);
     fareService.storeLongTrips(updated);

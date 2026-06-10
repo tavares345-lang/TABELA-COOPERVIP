@@ -125,12 +125,22 @@ const LongTripCalculator: React.FC<LongTripCalculatorProps> = ({
 
             try {
                 const lines = text.split('\n').filter(line => line.trim() !== '');
+                if (lines.length <= 1) {
+                    alert('Nenhum dado válido encontrado no arquivo CSV.');
+                    return;
+                }
+
+                // Detecta dinamicamente a presença de ponto e vírgula ou vírgula
+                const firstLine = lines[0] || '';
+                const delimiter = firstLine.includes(';') ? ';' : ',';
+
                 const newTrips: LongTrip[] = lines.slice(1)
                     .map((line, index) => {
-                        const parts = line.split(',');
+                        const parts = line.split(delimiter);
                         if (parts.length < 2) return null;
                         
                         const city = parts[0]?.replace(/^"|"$/g, '').trim().toUpperCase();
+                        // Trata números decimais tanto com ponto quanto com vírgula
                         const kmStr = parts[1]?.replace(/^"|"$/g, '').trim().replace(',', '.');
                         const kilometers = parseFloat(kmStr);
 
